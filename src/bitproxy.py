@@ -231,96 +231,32 @@ class ProxyHandler(BaseHTTPRequestHandler):
         self._proxy_sock.close()
 
         # Relay the message
-        self.request.sendall(self.mitm_response(res))
+        self.request.sendall(res)
 
-    def mitm_request(self, data):
-        for p in self.server._req_plugins:
-            data = p(self.server, self).do_request(data)
-        return data
-
-    def mitm_response(self, data):
-        for p in self.server._res_plugins:
-            data = p(self.server, self).do_response(data)
-        return data
 
     def __getattr__(self, item):
         if item.startswith('do_'):
             return self.do_COMMAND
 
-
-class InterceptorPlugin(object):
-
-    def __init__(self, server, msg):
-        self.server = server
-        self.message = msg
-
-
-class RequestInterceptorPlugin(InterceptorPlugin):
-
-    def do_request(self, data):
-        return data
-
-
-class ResponseInterceptorPlugin(InterceptorPlugin):
-
-    def do_response(self, data):
-        return data
-
-
-class InvalidInterceptorPluginException(Exception):
-    pass
+    def log_message(self, format, *args):
+        """Replace default function to suppress logging."""
+        return
 
 
 class MitmProxy(HTTPServer):
-
-    def __init__(self, server_address=('', 8080), RequestHandlerClass=ProxyHandler, bind_and_activate=True, ca_file='ca.pem'):
+    def __init__(self, server_address=('', 8080), RequestHandlerClass=ProxyHandler,
+                 bind_and_activate=True, ca_file='ca.pem'):
         HTTPServer.__init__(self, server_address, RequestHandlerClass, bind_and_activate)
-        self.ca = CertificateAuthority(ca_file)
-        self._res_plugins = []
-        self._req_plugins = []
-
-    def register_interceptor(self, interceptor_class):
-        if not issubclass(interceptor_class, InterceptorPlugin):
-            raise InvalidInterceptorPluginException('Expected type InterceptorPlugin got %s instead' % type(interceptor_class))
-        if issubclass(interceptor_class, RequestInterceptorPlugin):
-            self._req_plugins.append(interceptor_class)
-        if issubclass(interceptor_class, ResponseInterceptorPlugin):
-            self._res_plugins.append(interceptor_class)
+        self.ca = CertificateAuthority(ca_file, cache_dir="certs")
 
 
 class AsyncMitmProxy(ThreadingMixIn, MitmProxy):
     pass
 
 
-class MitmProxyHandler(ProxyHandler):
-
-    def mitm_request(self, data):
-        print '>> %s' % repr(data[:100])
-        return data
-
-    def mitm_response(self, data):
-        print '<< %s' % repr(data[:100])
-        return data
-
-
-class DebugInterceptor(RequestInterceptorPlugin, ResponseInterceptorPlugin):
-
-        def do_request(self, data):
-            print '>> %s' % repr(data[:100])
-            return data
-
-        def do_response(self, data):
-            print '<< %s' % repr(data[:100])
-            return data
-
-
 if __name__ == '__main__':
-    proxy = None
-    if not argv[1:]:
-        proxy = AsyncMitmProxy()
-    else:
-        proxy = AsyncMitmProxy(ca_file=argv[1])
-    proxy.register_interceptor(DebugInterceptor)
+    proxy = AsyncMitmProxy(server_address=('', 8084))
+
     try:
         proxy.serve_forever()
     except KeyboardInterrupt:
