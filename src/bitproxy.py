@@ -265,6 +265,20 @@ class BitSocket(socket.socket):
                 self.remote_context = ssl.create_default_context()
                 self.remote_context.check_hostname = False
             self._proxy_sock = self.remote_context.wrap_socket(self._proxy_sock,
+                                                               server_hostname=self.hostname)
+            if self.hostname.endswith(".bit"):
+                r = self.rpc.call("dns", ["getFingerprint", self.hostname])
+                nmcFpr = json.loads(r["reply"])[0].lower().replace(":", "")
+                #print "nmcFpr:", nmcFpr, self.hostname
+
+                remoteFpr = hashlib.sha1(self._proxy_sock.getpeercert(True)).hexdigest()
+                if not remoteFpr == nmcFpr:
+                    raise Exception("tls fingerprint mismatch")
+
+            else:
+                ssl.match_hostname(self._proxy_sock.getpeercert(),
+                                   self._proxy_sock.server_hostname)
+ 
     def _transition_to_ssl(self):
         if not self.local_context:
             certfile=self.server.ca[self.path.split(':')[0]]
