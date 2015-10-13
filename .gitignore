@@ -28,3 +28,9 @@ pip-log.txt
 
 .idea
 *.iml
+
+# bitproxy
+/certs
+*.pem
+*.crt
+*.spec
