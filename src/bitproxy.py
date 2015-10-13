@@ -5,9 +5,9 @@ from urlparse import urlparse, urlunparse, ParseResult
 from SocketServer import ThreadingMixIn
 from httplib import HTTPResponse
 from tempfile import gettempdir
-from os import path, listdir
+import os
 from ssl import wrap_socket
-from socket import socket
+import ssl
 from re import compile
 from sys import argv
 
@@ -87,8 +87,8 @@ class CertificateAuthority(object):
         self.key = load_privatekey(FILETYPE_PEM, open(file).read())
 
     def __getitem__(self, cn):
-        cnp = path.sep.join([self.cache_dir, '.pymp_%s.pem' % cn])
-        if not path.exists(cnp):
+        cnp = os.path.sep.join([self.cache_dir, '.pymp_%s.pem' % cn])
+        if not os.path.exists(cnp):
             # create certificate
             key = PKey()
             key.generate_key(TYPE_RSA, 2048)
