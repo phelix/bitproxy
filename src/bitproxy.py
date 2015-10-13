@@ -252,11 +252,12 @@ class BitSocket(socket.socket):
                     fragment=u.fragment
                 )
             )
+        self.port = int(self.port)
 
         # Connect to destination
-        self._proxy_sock = socket()
+        self._proxy_sock = BitSocket()
         self._proxy_sock.settimeout(10)
-        self._proxy_sock.connect((self.hostname, int(self.port)))
+        self._proxy_sock.connect((self.hostname, self.port))
 
         # Wrap socket if SSL is required
         if self.is_connect:
