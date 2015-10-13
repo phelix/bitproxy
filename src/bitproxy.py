@@ -44,10 +44,11 @@ def ensure_dirs(path):
 
 class CertificateAuthority(object):
 
-    def __init__(self, ca_file='ca.pem', cache_dir=gettempdir()):
+    def __init__(self, ca_file, cache_dir=gettempdir(), filetype=FILETYPE_PEM):
         ensure_dirs(cache_dir)
         self.ca_file = ca_file
         self.cache_dir = cache_dir
+        self.filetype = filetype
         self._serial = self._get_serial()
         if not os.path.exists(ca_file):
             self._generate_ca()
@@ -86,12 +87,12 @@ class CertificateAuthority(object):
         self.cert.sign(self.key, "sha1")
 
         with open(self.ca_file, 'wb+') as f:
-            f.write(dump_privatekey(FILETYPE_PEM, self.key))
-            f.write(dump_certificate(FILETYPE_PEM, self.cert))
+            f.write(dump_privatekey(self.filetype, self.key))
+            f.write(dump_certificate(self.filetype, self.cert))
 
     def _read_ca(self, file):
-        self.cert = load_certificate(FILETYPE_PEM, open(file).read())
-        self.key = load_privatekey(FILETYPE_PEM, open(file).read())
+        self.cert = load_certificate(self.filetype, open(file).read())
+        self.key = load_privatekey(self.filetype, open(file).read())
 
     def __getitem__(self, cn):
         cnp = os.path.sep.join([self.cache_dir, '.pymp_%s.pem' % cn])
@@ -117,8 +118,8 @@ class CertificateAuthority(object):
             cert.sign(self.key, 'sha256')
 
             with open(cnp, 'wb+') as f:
-                f.write(dump_privatekey(FILETYPE_PEM, key))
-                f.write(dump_certificate(FILETYPE_PEM, cert))
+                f.write(dump_privatekey(self.filetype, key))
+                f.write(dump_certificate(self.filetype, cert))
 
         return cnp
 
