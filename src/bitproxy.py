@@ -165,8 +165,13 @@ class ProxyHandler(BaseHTTPRequestHandler):
 
 
     def _transition_to_ssl(self):
-        self.request = wrap_socket(self.request, server_side=True, certfile=self.server.ca[self.path.split(':')[0]])
-
+        if not self.local_context:
+            certfile=self.server.ca[self.path.split(':')[0]]
+            self.local_context = ssl.create_default_context(purpose=ssl.Purpose.CLIENT_AUTH)
+            self.local_context.load_cert_chain(certfile=certfile)
+            if "RC4" in ssl._DEFAULT_CIPHERS.upper().replace("!RC4", ""):
+                raise Exception("Python version seems to old (contains RC4 cipher).")
+        self.request = self.local_context.wrap_socket(self.request, server_side=True)
 
     def do_CONNECT(self):
         self.is_connect = True
