@@ -40,6 +40,16 @@ from tempfile import gettempdir
 import os
 from ssl import wrap_socket
 import ssl
+
+import socket
+import time
+import thread
+import traceback
+import namerpc
+import json
+
+import hashlib
+
 from re import compile
 from sys import argv
 
