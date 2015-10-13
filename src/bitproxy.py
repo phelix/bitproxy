@@ -1,5 +1,37 @@
 #!/usr/bin/env python
 
+"""
+__author__ = 'Nadeem Douba / phelix 2014, 2015'
+__copyright__ = 'Copyright 2012, PyMiProxy Project; 2014, 2015 Namecoin Project'
+__license__ = 'GPL'
+
+how to install proxy generated certificate on Windows
+    Firefox
+        Tools->Options->Advanced->Certificates->View_Certificates->Authorities->
+            Import...->ca.crt->"Trust this CA to identify websites"->OK->OK
+           (it might then be necessary to wait a couple of seconds or even restart)
+    Chrome/Internet Explorer/System
+        Open ca.crt in file explorer->install_certificate...->local-machine->continue->
+            yes->this storage->browse...->trusted root CA->ok->continue->finish->OK->OK
+
+todo
+    clean & refactor (modular with internetarchive/warcprox and certauth?)
+    use sha256 d/ fingerprints
+    instructions: how to add cert to firefox / system
+    firefox plugin to add cert?
+    firefox plugin to only proxy .bit/tls:.bit
+    or use pac file for proxy config only for .bit/tls:.bit (served via bottle?)
+    instructions: note about browser "certificate caching"
+    test python 2.7.9 - should bail
+    ! safes browsing history - can not simply be deleted without conflicting with browser cache
+    improve caching (also for .bit?)
+    pass on remote cert data in local cert
+    occasional SSLEOFError: EOF occurred in violation of protocol (_ssl.c:590)  --> TLSv1 (SO)
+    automatic certificate install for firefox via certutil or alternative?
+    unclear error during client launch
+    better error messages on browser error page
+"""
+
 from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 from urlparse import urlparse, urlunparse, ParseResult
 from SocketServer import ThreadingMixIn
