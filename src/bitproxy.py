@@ -35,14 +35,21 @@ __all__ = [
     'InvalidInterceptorPluginException'
 ]
 
+def ensure_dirs(path):
+    try:
+        os.makedirs(path)
+    except OSError:
+        if not os.path.isdir(path):
+            raise
 
 class CertificateAuthority(object):
 
     def __init__(self, ca_file='ca.pem', cache_dir=gettempdir()):
+        ensure_dirs(cache_dir)
         self.ca_file = ca_file
         self.cache_dir = cache_dir
         self._serial = self._get_serial()
-        if not path.exists(ca_file):
+        if not os.path.exists(ca_file):
             self._generate_ca()
         else:
             self._read_ca(ca_file)
