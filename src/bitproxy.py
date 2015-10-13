@@ -34,7 +34,8 @@ todo
     occasional SSLEOFError: EOF occurred in violation of protocol (_ssl.c:590)  --> TLSv1 (SO)
     automatic certificate install for firefox via certutil or alternative?
     unclear error during client launch
-    better error messages on browser error page
+    better error on domain not found
+    better error messages on browser error page in general
 """
 
 from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
@@ -172,7 +173,7 @@ class BitSocket(socket.socket):
     ipTable = {}
     def connect(self, (hostname, port)):
         try:
-            ip = None            
+            ip = None
             if not hostname.endswith(".bit"):  # legacy domains
                 ip, fresh = BitSocket.get_ip(hostname)
                 try:
@@ -184,7 +185,7 @@ class BitSocket(socket.socket):
                         socket.socket.connect(self, (ip, port))
                     else:
                         raise
-            else:  # .bit                
+            else:  # .bit
                 r = self.rpc.call("dns", ["getIp4", hostname])
                 ip = str(json.loads(r["reply"])[0])
                 socket.socket.connect(self, (ip, port))
@@ -288,7 +289,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
             else:
                 ssl.match_hostname(self._proxy_sock.getpeercert(),
                                    self._proxy_sock.server_hostname)
- 
+
     def _transition_to_ssl(self):
         if not self.local_context:
             certfile=self.server.ca[self.path.split(':')[0]]
@@ -315,7 +316,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
                 print "hostname:", self.hostname,
                 print " port:", self.port
             except:
-                print "-"            
+                print "-"
             traceback.print_exc()
             self.send_error(500, str(e))
             return
