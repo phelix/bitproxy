@@ -226,10 +226,15 @@ class BitSocket(socket.socket):
         # cached
         return ipData[0], True
 
+
+class ProxyHandler(BaseHTTPRequestHandler):
+    rpc = namerpc.CoinRpc(connectionType="nmcontrol")  # threading/sync?
     r = compile(r'http://[^/]+(/?.*)(?i)')
 
     def __init__(self, request, client_address, server):
         self.is_connect = False
+        self.remote_context = None
+        self.local_context = None
         BaseHTTPRequestHandler.__init__(self, request, client_address, server)
 
     def _connect_to_host(self):
