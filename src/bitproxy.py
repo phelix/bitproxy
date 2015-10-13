@@ -90,6 +90,10 @@ class CertificateAuthority(object):
             f.write(dump_privatekey(self.filetype, self.key))
             f.write(dump_certificate(self.filetype, self.cert))
 
+        # export for Windows
+        with open("ca.crt", 'wb+') as f:
+            f.write(dump_certificate(self.filetype, self.cert))
+
     def _read_ca(self, file):
         self.cert = load_certificate(self.filetype, open(file).read())
         self.key = load_privatekey(self.filetype, open(file).read())
