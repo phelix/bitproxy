@@ -57,6 +57,7 @@ from OpenSSL.crypto import (X509Extension, X509, dump_privatekey, dump_certifica
                             PKey, TYPE_RSA, X509Req)
 from OpenSSL.SSL import FILETYPE_PEM
 
+DNSCACHETIME = 3600 * 24
 
 
 def ensure_dirs(path):
@@ -187,7 +188,43 @@ class BitSocket(socket.socket):
             traceback.print_exc()
             raise
 
-class ProxyHandler(BaseHTTPRequestHandler):
+    @classmethod
+    def fetch_ip(cls, hostname):
+        ip = socket.gethostbyname(hostname)
+        cls.ipTable[hostname] = (ip, time.time())
+        return ip
+
+    @classmethod
+    def get_ip(cls, hostname, force=False, block=False):
+        """returns (ip, cached)"""
+        try:
+            ipData = cls.ipTable[hostname]
+            seen = True
+        except KeyError:
+            seen = False
+
+        if seen and ipData == None:  # wait for other connection to return
+            c = 0
+            while c < 100:  # we are only so patient
+                time.sleep(0.05)
+                c += 1
+                if cls.ipTable[hostname]:
+                    return cls.ipTable[hostname], False
+            else:  # while loop ended without return
+                seen = False
+
+        if not seen or force:  # actually fetch
+            if not seen or block:
+                cls.ipTable[hostname] = None
+            ip = BitSocket.fetch_ip(hostname)
+            return ip, False
+
+        # update cache?
+        if time.time() - ipData[1] > DNSCACHETIME:  # time for background udpate?
+            thread.start_new_thread(BitSocket.fetch_ip(hostname, force=True, block=False))
+
+        # cached
+        return ipData[0], True
 
     r = compile(r'http://[^/]+(/?.*)(?i)')
 
