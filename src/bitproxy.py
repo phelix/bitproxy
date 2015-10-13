@@ -1,9 +1,14 @@
 #!/usr/bin/env python
 
 """
-__author__ = 'Nadeem Douba / phelix 2014, 2015'
-__copyright__ = 'Copyright 2012, PyMiProxy Project; 2014, 2015 Namecoin Project'
-__license__ = 'GPL'
+bitproxy
+phelix / Namecoin Project 2014, 2015
+
+forked from PyMiProxy
+Nadeem Douba / PyMiProxy Project 2012
+
+License: GPL
+
 
 how to install proxy generated certificate on Windows
     Firefox
