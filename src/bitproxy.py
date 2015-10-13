@@ -124,6 +124,32 @@ class CertificateAuthority(object):
 class UnsupportedSchemeException(Exception):
     pass
 
+class BitSocket(socket.socket):
+    rpc = namerpc.CoinRpc(connectionType="nmcontrol")  # threading/sync?
+    original_connect = socket.socket.connect
+    ipTable = {}
+    def connect(self, (hostname, port)):
+        try:
+            ip = None            
+            if not hostname.endswith(".bit"):  # legacy domains
+                ip, fresh = BitSocket.get_ip(hostname)
+                try:
+                    socket.socket.connect(self, (ip, port))
+                except:
+                    if not fresh:
+                        ip, fresh = BitSocket.get_ip(hostname, force=True)
+                        #print "ip, port, fresh:", ip, type(port), fresh
+                        socket.socket.connect(self, (ip, port))
+                    else:
+                        raise
+            else:  # .bit                
+                r = self.rpc.call("dns", ["getIp4", hostname])
+                ip = str(json.loads(r["reply"])[0])
+                socket.socket.connect(self, (ip, port))
+        except:
+            print "###### exception remote connect: ", hostname, ip, port
+            traceback.print_exc()
+            raise
 
 class ProxyHandler(BaseHTTPRequestHandler):
 
