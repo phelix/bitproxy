@@ -161,9 +161,10 @@ class ProxyHandler(BaseHTTPRequestHandler):
 
         # Wrap socket if SSL is required
         if self.is_connect:
-            self._proxy_sock = wrap_socket(self._proxy_sock)
-
-
+            if not self.remote_context:
+                self.remote_context = ssl.create_default_context()
+                self.remote_context.check_hostname = False
+            self._proxy_sock = self.remote_context.wrap_socket(self._proxy_sock,
     def _transition_to_ssl(self):
         if not self.local_context:
             certfile=self.server.ca[self.path.split(':')[0]]
