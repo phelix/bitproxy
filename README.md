@@ -7,15 +7,25 @@ forked from PyMiProxy by Nadeem Douba / PyMiProxy Project 2012
 
 License: GPL
 
+##how to run
+You need to have the Namecoin client running with the blockchain (almost) completely downloaded.
+Also you need to have NMControl running.
 
-##how to install proxy generated root certificate on Windows
+1.) set your browser proxy to 127.0.0.1:8084
+(or better set your browser proxy config via the included bitproxy.pac via file:// or file:///
+This will only redirect .bit domains to the proxy.)
+
+2.) install local root cert to be able to use https
     Firefox
         Tools->Options->Advanced->Certificates->View_Certificates->Authorities->
             Import...->ca.crt->"Trust this CA to identify websites"->OK->OK
            (it might then be necessary to wait a couple of seconds or even restart)
-    Chrome/Internet Explorer/System
+    Chrome/Internet Explorer/System (on Windows)
         Open ca.crt in file explorer->install_certificate...->local-machine->continue->
             yes->this storage->browse...->trusted root CA->ok->continue->finish->OK->OK
+
+3.) Go to https://nf.bit and brag
+
 
 ##todo
     clean & refactor (modular with internetarchive/warcprox and certauth?)
