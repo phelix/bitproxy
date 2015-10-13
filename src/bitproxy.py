@@ -74,7 +74,7 @@ class CertificateAuthority(object):
         self.cert = X509()
         self.cert.set_version(3)
         self.cert.set_serial_number(1)
-        self.cert.get_subject().CN = 'ca.mitm.com'
+        self.cert.get_subject().CN = 'Namecoin .bit proxy'
         self.cert.gmtime_adj_notBefore(0)
         self.cert.gmtime_adj_notAfter(315360000)
         self.cert.set_issuer(self.cert.get_subject())
