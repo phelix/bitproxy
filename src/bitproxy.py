@@ -84,7 +84,7 @@ class CertificateAuthority(object):
             X509Extension("keyUsage", True, "keyCertSign, cRLSign"),
             X509Extension("subjectKeyIdentifier", False, "hash", subject=self.cert),
             ])
-        self.cert.sign(self.key, "sha1")
+        self.cert.sign(self.key, "sha256")
 
         with open(self.ca_file, 'wb+') as f:
             f.write(dump_privatekey(self.filetype, self.key))
