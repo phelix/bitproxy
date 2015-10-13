@@ -178,8 +178,15 @@ class ProxyHandler(BaseHTTPRequestHandler):
             self.send_response(200, 'Connection established')
             self.end_headers()
             #self.request.sendall('%s 200 Connection established\r\n\r\n' % self.request_version)
+
             self._transition_to_ssl()
         except Exception, e:
+            try:
+                print "hostname:", self.hostname,
+                print " port:", self.port
+            except:
+                print "-"            
+            traceback.print_exc()
             self.send_error(500, str(e))
             return
 
@@ -212,7 +219,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
             req += self.rfile.read(int(self.headers['Content-Length']))
 
         # Send it down the pipe!
-        self._proxy_sock.sendall(self.mitm_request(req))
+        self._proxy_sock.sendall(req)
 
         # Parse response
         h = HTTPResponse(self._proxy_sock)
