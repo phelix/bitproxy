@@ -27,6 +27,8 @@ from OpenSSL.SSL import FILETYPE_PEM
 
 DNSCACHETIME = 3600 * 24
 
+IPFSHOST = '127.0.0.1'
+IPFSPORT = 8080
 
 def ensure_dirs(path):
     try:
@@ -226,6 +228,16 @@ class ProxyHandler(BaseHTTPRequestHandler):
                 )
             )
         self.port = int(self.port)
+        if self.hostname.endswith(('_ipfs.bit', 'b-i', 'i', 'ipfs')):
+            if self.path == '/' or self.path == '':
+                r = self.rpc.call("dns", ["getIpfs", self.hostname])
+                ipfsAddress = json.loads(r["reply"])[0]
+                self.path = '/ipfs/' + ipfsAddress
+            else:
+                if not self.path.startswith('/ipfs/'):  # allow omitting /ipfs/ - hmm
+                    self.path = '/ipfs' + self.path
+            self.hostname = IPFSHOST
+            self.port = IPFSPORT
 
         # Connect to destination
         self._proxy_sock = BitSocket()
