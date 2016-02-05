@@ -42,9 +42,11 @@ import locale
 encoding = locale.getpreferredencoding().lower()
 
 COINAPP = "namecoin"
-DEFAULTCLIENTPORT =  8332
+DEFAULTCLIENTPORT =  8336
 DEFAULTNMCONTROLPORT =  9000
 HOST = "127.0.0.1"
+
+COOKIEAUTH_FILE = ".cookie"
 
 CONTYPECLIENT = "client"
 CONTYPENMCONTROL = "nmcontrol"
@@ -174,20 +176,9 @@ class CoinRpc(object):
 
     def call(self, method="getinfo", params=[]):
         if self.connectionType == CONTYPECLIENT:
-            val = {"error" : None, "code":None}
-            try:
-                if params:
-                    val["result"] = self.authServiceProxy.__getattr__(method)(*params)
-                else:
-                    val["result"] = self.authServiceProxy.__getattr__(method)()
-            except authproxy.JSONRPCException as e:
-                val = {"error" : e.error}
-                try:
-                    val["code"] = e.error["code"]
-                except KeyError:
-                    val["code"] = "NA"
-            except Exception as e:
-                raise RpcError(e)
+            val = self.query_server_asp(method, *params)
+            #except Exception as e:
+              #  raise RpcError(e)
         elif self.connectionType == CONTYPENMCONTROL:
             data = {"method": method, "params": params}
             resp = self.query_server(json.dumps(data))
@@ -204,6 +195,28 @@ class CoinRpc(object):
             raise RpcError(val)  # attn: different format for client and nmcontrol
 
         return val["result"]
+
+    def query_server_asp(self, method, *params):
+        val = {"error" : None, "code":None}
+        try:
+            try:
+                val['result'] = self.authServiceProxy.__getattr__(method)(*params)
+            except socket.error as e:
+                if e.errno == 10053:  # closed by host
+                    # workaround for closed connection - why? timeout?
+                    if DEBUG:
+                        print "connection closed by host, setting up new one"
+                    self.setup_authServiceProxy()
+                    val['result'] = self.authServiceProxy.__getattr__(method)(*params)
+                else:
+                    raise
+        except authproxy.JSONRPCException as e:
+            val = {"error" : e.error}
+            try:
+                val["code"] = e.error["code"]
+            except KeyError:
+                val["code"] = "NA"
+        return val
 
     def query_server(self, data):
         """Helper routine sending data to the RPC server and returning the result."""
@@ -237,10 +250,35 @@ class CoinRpc(object):
 
     def get_options(self):
         if self.connectionType == CONTYPECLIENT:
-            return self.get_options_client()
+            options = {}
+            try:
+                options = self.get_options_client()
+                if DEBUG:
+                    print "client options from conf file:", optoins
+            except:
+                pass
+            if not 'rpcuser' in options or not 'rpcpassword' in options:
+                # fall back to cookie authentication
+                options = self.get_cookie_auth(options)
+                if DEBUG:
+                    print "client options with cookie auth:", options
+            return options
         if self.connectionType == CONTYPENMCONTROL:
             return {"rpcport":DEFAULTNMCONTROLPORT}
         return None
+
+    def get_cookie_auth(self, options):
+        if DEBUG:
+            print "cookie auth"
+        try:
+            filename = self.datadir + "/" + COOKIEAUTH_FILE
+            with open(filename) as f:
+                    line = f.readline()
+                    options['rpcuser'], options['rpcpassword'] = line.split (':')
+        except IOError as e:
+            if e.errno == 2:
+                raise IOError(e.errno, "namerpc: Could not open cookie file: " + str(filename))
+        return options
 
     def get_options_client(self):
         """Read options (rpcuser/rpcpassword/rpcport) from .conf file."""
@@ -249,7 +287,7 @@ class CoinRpc(object):
         if not self.datadir:
             self.datadir = self.get_conf_folder()
         try:
-            filename = self.datadir + "/" + COINAPP + ".conf"
+            filename = self.datadir + os.sep + COINAPP + ".conf"
             with open(filename) as f:
                 while True:
                     line = f.readline()
@@ -258,6 +296,8 @@ class CoinRpc(object):
                     parts = line.split ("=")
                     if len(parts) == 2:
                         key = parts[0].strip()
+                        if key.startswith("#"):
+                            continue
                         val = parts[1].strip()
                         options[key] = val
         except IOError as e:
@@ -311,6 +351,10 @@ if __name__ == "__main__":
     print rpc.call("getinfo")
     #print rpc.nm_show("d/nx")
 
+    # test timeout
+    time.sleep(66)
+    print rpc.call("getinfo")
+
     if len(sys.argv) == 1:
         print "========auto detect"
         rpc = CoinRpc()  # default: connectionType="auto"
@@ -326,6 +370,7 @@ if __name__ == "__main__":
 
         print "\n\n========Namecoind"
         rpc = CoinRpc(connectionType=CONTYPECLIENT)
+        print "options:", rpc.options
         print rpc.call("getinfo")
         print rpc.nm_show("d/nx")
 
