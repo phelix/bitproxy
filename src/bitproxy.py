@@ -3,7 +3,11 @@
 from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 from urlparse import urlparse, urlunparse, ParseResult
 from SocketServer import ThreadingMixIn
-from httplib import HTTPResponse
+
+import httplib
+httplib.HTTPConnection._http_vsn = 10
+httplib.HTTPConnection._http_vsn_str = 'HTTP/1.0'
+
 from tempfile import gettempdir
 import os
 from ssl import wrap_socket
@@ -26,6 +30,9 @@ from OpenSSL.crypto import (X509Extension, X509, dump_privatekey, dump_certifica
 from OpenSSL.SSL import FILETYPE_PEM
 
 DNSCACHETIME = 3600 * 24
+
+DOTBITEXTENSIONS = ('.bit', '.b')
+IPFSEXTENSIONS = ('._ipfs.bit', '.b-i', '.i')
 
 IPFSHOST = '127.0.0.1'
 IPFSPORT = 8080
@@ -138,7 +145,7 @@ class BitSocket(socket.socket):
     def connect(self, (hostname, port)):
         try:
             ip = None
-            if not hostname.endswith(".bit"):  # legacy domains
+            if not hostname.endswith(DOTBITEXTENSIONS):  # legacy domains
                 ip, fresh = BitSocket.get_ip(hostname)
                 try:
                     socket.socket.connect(self, (ip, port))
@@ -228,16 +235,26 @@ class ProxyHandler(BaseHTTPRequestHandler):
                 )
             )
         self.port = int(self.port)
-        if self.hostname.endswith(('_ipfs.bit', 'b-i', 'i', 'ipfs')):
-            if self.path == '/' or self.path == '':
-                r = self.rpc.call("dns", ["getIpfs", self.hostname])
-                ipfsAddress = json.loads(r["reply"])[0]
-                self.path = '/ipfs/' + ipfsAddress
-            else:
-                if not self.path.startswith('/ipfs/'):  # allow omitting /ipfs/ - hmm
-                    self.path = '/ipfs' + self.path
-            self.hostname = IPFSHOST
-            self.port = IPFSPORT
+
+        # ipfs
+        for extension in DOTBITEXTENSIONS + IPFSEXTENSIONS:
+            if self.hostname.endswith(extension):
+                r = self.rpc.call('dns', ['getIpfs', self.hostname])
+                try:
+                    ipfsAddress = json.loads(r["reply"])[0]
+                except (AttributeError, IndexError, ValueError):
+                    if extension in DOTBITEXTENSIONS:
+                        break  # try to resolve another way
+                    if extension in IPFSEXTENSIONS:
+                        raise Exception("No or broken IPFS data.")
+                self.hostname = IPFSHOST
+                self.port = IPFSPORT
+                print "self.path", self.path
+                if self.path == '/' or self.path == '':
+                    self.path = '/ipfs/' + ipfsAddress
+                else:
+                    if not self.path.startswith('/ipfs/'):  # allow omitting /ipfs/ - hmm
+                        self.path = '/ipfs' + self.path
 
         # Connect to destination
         self._proxy_sock = BitSocket()
@@ -327,7 +344,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
         self._proxy_sock.sendall(req)
 
         # Parse response
-        h = HTTPResponse(self._proxy_sock)
+        h = httplib.HTTPResponse(self._proxy_sock)
         h.begin()
 
         # Get rid of the pesky header
